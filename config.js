@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
-const CONSTANTS = require('./constants');
+require('dotenv').config();
 
-mongoose.connect(CONSTANTS.URL);
+
+mongoose.connect(process.env.URL);

@@ -1,11 +1,13 @@
 const express = require('express');
 require('./config');
-const CONSTANTS = require('./constants');
 const Student = require('./schemas/Students');
-const REQRESPONSE = require('./responses/reqResponse');
+const {REQRESPONSE, LISTRESPONSE} = require('./responses/reqResponse');
 const app = express();
+require('dotenv').config();
+
 
 app.use(express.json());
+
 
 app.post('/student/create', async (req, res) => {
     if (!req.body || Object.keys(req.body).length === 0) {
@@ -26,10 +28,28 @@ app.post('/student/create', async (req, res) => {
 // GET DATA
 app.get('/student/getAll', async (req, res) => {
     try {
-        const data = await Student.find();
-        const response = new REQRESPONSE(200, data, "Students retrieved successfully");
-        console.log(data);
-        res.status(200).send(response);
+        console.log(req.query);
+        const page = parseInt(req.query.page) || 1; 
+        const pageSize = parseInt(req.query.pageSize) || 10; 
+
+        const skip = (page - 1) * pageSize;
+        
+        const totalCount = await Student.countDocuments();
+        const totalPages = Math.ceil(totalCount / pageSize);
+        console.log(
+            'page:' + page,
+            'totalPages:' + totalPages,
+            'totalCount:' + totalCount,
+);
+        if (page > totalPages) {
+            res.status(404).send(new REQRESPONSE(404, {}, "Data not found"));
+        } else {
+            const data = await Student.find().skip(skip).limit(pageSize);
+            // console.log(data);
+            const response = new LISTRESPONSE(200, data, 'Students Retrieved Successfully', totalCount, page, pageSize);
+            res.status(200).send(response);
+        }
+
     } catch (e) {
         res.status(500).send(new REQRESPONSE(500, {}, "Internal Server Error"));
     }
@@ -99,6 +119,6 @@ app.delete('/student/delete/:_id', async (req, res) => {
     
 })
 
-app.listen(CONSTANTS.PORT, ()=> {
-    console.log("Server is listening on port " + CONSTANTS.PORT);
+app.listen(process.env.PORT, ()=> {
+    console.log("Server is listening on port " + process.env.PORT);
 })
