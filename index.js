@@ -8,6 +8,53 @@ require('dotenv').config();
 
 app.use(express.json());
 
+// SEARCH DATA WITH QUERY
+// SEARCH DATA using query parameters
+app.get('/student/search/query', async (req, res) => {
+    try {
+        const { name, fatherName } = req.query;  // Access the query parameters
+
+        // Build the search criteria based on provided query parameters
+        const searchCriteria = {};
+
+        if (name) {
+            searchCriteria.name = { $regex: name, $options: 'i' };  // Case-insensitive search
+        }
+
+        if (fatherName) {
+            searchCriteria.fatherName = { $regex: fatherName, $options: 'i' };  // Case-insensitive search
+        }
+
+        // If no query parameters are provided, return an error
+        if (!name && !fatherName) {
+            return res.status(400).send({ error: "At least one query parameter ('name' or 'fatherName') is required" });
+        }
+
+        const data = await Student.find({
+            "$or": [
+                searchCriteria.name ? { "name": searchCriteria.name } : null,
+                searchCriteria.fatherName ? { "fatherName": searchCriteria.fatherName } : null
+            ].filter(criteria => criteria !== null)  // Filter out null criteria
+        });
+
+        res.send(data);
+    } catch (err) {
+        res.status(500).send({ error: err.message });
+    }
+});
+
+
+// SEARCH DATA
+app.get('/student/search/:key', async (req, res) => {
+    const data = await Student.find({
+        "$or": [
+            {"name": {$regex:req.params.key}},
+            {"fatherName": {$regex:req.params.key}}
+        ]
+    })
+    res.send(data);
+
+})
 
 app.post('/student/create', async (req, res) => {
     if (!req.body || Object.keys(req.body).length === 0) {
